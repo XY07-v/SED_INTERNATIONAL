@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SED International - Dashboard Único</title>
+    <link href="https://fonts.cdnfonts.com/css/bahnschrift" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); }
+        body { background-color: #f4f7fb; color: #1c2d42; padding: 16px; font-size: 13px; width: 100%; min-height: 100vh; overflow-x: hidden; }
+        
+        /* Ancho de pantalla ajustado al 100% */
+        .container { width: 100%; max-width: 100%; margin: 0; padding: 0 10px; }
+        
+        .top-header {
+            background: linear-gradient(135deg, #103254 0%, #1e5a8a 35%, #8b2332 75%, #b94025 100%);
+            border-radius: 10px; padding: 16px 24px; color: white; margin-bottom: 16px;
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            width: 100%;
+        }
+        .header-title { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif; }
+        
+        .tabs-nav {
+            display: flex; gap: 8px; margin-bottom: 16px; background: #ffffff; padding: 8px;
+            border-radius: 10px; border: 1px solid #e2e8f0; box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+            width: 100%; flex-wrap: wrap;
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .tab-link {
+            flex: 1; min-width: 130px; display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 10px; border-radius: 6px; text-decoration: none; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; color: #0f2b48; background: #f8fafc; border: 1px solid #cbd5e1;
+            white-space: nowrap; text-align: center; cursor: pointer;
+            position: relative; overflow: hidden; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif;
+        }
+        .tab-link::after {
+            content: ''; position: absolute; bottom: 0; left: 50%; width: 0; height: 3px; background: #0070ba; transition: width 0.3s ease, left 0.3s ease;
+        }
+        .tab-link:hover { background: #e2e8f0; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        .tab-link:hover::after { width: 80%; left: 10%; }
+        .tab-link.active { background: #0f2b48; color: white; border-color: #0f2b48; box-shadow: 0 6px 15px rgba(15,43,72,0.3); transform: translateY(-2px); }
+        .tab-link.active::after { background: #b94025; width: 100%; left: 0; }
+        
+        .tab-content { display: none; opacity: 0; transform: translateY(12px); transition: opacity 0.4s ease, transform 0.4s ease; width: 100%; }
+        .tab-content.active { display: block; opacity: 1; transform: translateY(0); }
+
+        .filters-bar {
+            background: #ffffff; border-radius: 10px; padding: 14px;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; width: 100%;
+        }
+        .filters-bar-5 {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;
+            background: #ffffff; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0; box-shadow: 0 6px 15px rgba(0,0,0,0.04); width: 100%;
+        }
+        .filters-bar-4 {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px;
+            background: #ffffff; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0; box-shadow: 0 6px 15px rgba(0,0,0,0.04); width: 100%;
+        }
+        .filter-item { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+        .filter-label { font-size: 11px; font-weight: 700; color: #0f2b48; text-transform: uppercase; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif; }
+        .filter-control {
+            width: 100%; padding: 9px 12px; border-radius: 6px; border: 1px solid #cbd5e1;
+            background: #f8fafc; font-size: 12px; color: #1c2d42; outline: none; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif;
+        }
+        .filter-control:focus { border-color: #0070ba; box-shadow: 0 0 0 3px rgba(0,112,186,0.15); background: #ffffff; }
+
+        .kpi-container {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; width: 100%;
+        }
+        .kpi-card {
+            background: #ffffff; padding: 16px; border-radius: 10px; border: 1px solid #e2e8f0;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.04); text-align: center; text-decoration: none; display: block; cursor: pointer;
+            position: relative; overflow: hidden;
+        }
+        .kpi-card::before {
+            content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: #0070ba; transition: width 0.3s;
+        }
+        .kpi-card:hover { border-color: #0070ba; transform: translateY(-4px); box-shadow: 0 10px 22px rgba(0,112,186,0.15); }
+        .kpi-card:hover::before { width: 100%; opacity: 0.05; }
+        .kpi-title { font-size: 11px; font-weight: 700; color: #0f2b48; text-transform: uppercase; margin-bottom: 6px; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif; }
+        .kpi-value { font-size: 18px; font-weight: 700; color: #0070ba; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif; }
+        
+        .section-box { background: #ffffff; border-radius: 10px; padding: 16px; margin-bottom: 16px; box-shadow: 0 6px 15px rgba(0,0,0,0.04); border: 1px solid #e2e8f0; width: 100%; }
+        .section-title { font-size: 15px; font-weight: 700; color: #0f2b48; margin-bottom: 12px; border-bottom: 2px solid #edf2f7; padding-bottom: 8px; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif; }
+        
+        .table-container { background: #ffffff; border-radius: 10px; box-shadow: 0 6px 15px rgba(0,0,0,0.04); overflow-x: auto; border: 1px solid #e2e8f0; width: 100%; max-height: 70vh; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 12px; white-space: nowrap; }
+        th { background-color: #0f2b48; color: #ffffff; padding: 11px 14px; font-weight: 700; text-transform: uppercase; font-size: 11px; position: sticky; top: 0; z-index: 10; letter-spacing: 0.5px; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif; }
+        td { padding: 11px 14px; border-bottom: 1px solid #edf2f7; vertical-align: middle; font-family: 'Bahnschrift', 'Bahnschrift Light', sans-serif; }
+        tbody tr { transition: background-color 0.2s ease, transform 0.2s ease; }
+        tbody tr:hover { background-color: #f1f5f9; }
+        
+        .img-thumb-container { width: 42px; height: 42px; border-radius: 6px; overflow: hidden; border: 1px solid #cbd5e1; cursor: pointer; display: inline-block; flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+        .img-thumb { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        .img-thumb:hover { transform: scale(1.2); }
+        
+        .mini-map-card {
+            width: 42px; height: 42px; border-radius: 6px; border: 1px solid #cbd5e1;
+            cursor: pointer; position: relative; overflow: hidden; background: #e2e8f0; flex-shrink: 0;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); display: inline-block; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .mini-map-card:hover { border-color: #0070ba; transform: scale(1.12); box-shadow: 0 6px 16px rgba(0,0,0,0.25); }
+        .mini-leaflet-map { width: 100%; height: 100%; pointer-events: none; }
+        .mini-map-overlay-text {
+            position: absolute; bottom: 2px; right: 2px; background: rgba(15, 43, 72, 0.9); color: white;
+            font-size: 6px; padding: 1px 3px; border-radius: 3px; z-index: 400; font-weight: 700;
+        }
+
+        .modal {
+            display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.8); align-items: center; justify-content: center;
+            opacity: 0; transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1); backdrop-filter: blur(5px);
+        }
+        .modal.show { display: flex; opacity: 1; }
+        .modal-content {
+            background: #ffffff; padding: 22px; border-radius: 12px; width: 90%; max-width: 650px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4); transform: scale(0.85); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;
+        }
+        .modal.show .modal-content { transform: scale(1); }
+        .close-modal {
+            position: absolute; right: 16px; top: 14px; font-size: 22px; font-weight: bold; color: #64748b; cursor: pointer; z-index: 2010;
+            transition: color 0.2s, transform 0.2s;
+        }
+        .close-modal:hover { color: #b94025; transform: rotate(90deg); }
+        #fullMap { width: 100%; height: 420px; border-radius: 8px; margin-top: 10px; border: 1px solid #cbd5e1; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05); }
+        #fullImage { width: 100%; max-height: 70vh; object-fit: contain; border-radius: 8px; margin-top: 10px; cursor: zoom-in; transition: transform 0.3s ease; }
+        #fullImage.zoomed { transform: scale(1.6); cursor: zoom-out; }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="top-header">
+            <h1 class="header-title">SED International - Dashboard Integrado</h1>
+        </header>
+
+        <div class="tabs-nav">
+            <a class="tab-link active" onclick="switchTab('indicadores', this)"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/></svg> Indicadores</a>
+            <a class="tab-link" onclick="switchTab('asistencia', this)"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg> Asistencia</a>
+            <a class="tab-link" onclick="switchTab('inventarios', this)"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg> Inventarios</a>
+            <a class="tab-link" onclick="switchTab('ventas', this)"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Ventas</a>
+            <a class="tab-link" onclick="switchTab('exhibiciones', this)"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM9 4v16M15 4v16M4 9h16M4 15h16"/></svg> Exhibiciones</a>
+            <a class="tab-link" onclick="switchTab('visita_pocs', this)"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> Visita Pocs</a>
+        </div>
+
+        <!-- SECCIÓN: INDICADORES -->
+        <div id="tab-indicadores" class="tab-content active">
+            <div class="filters-bar">
+                <div class="filter-item">
+                    <label class="filter-label">Fecha:</label>
+                    <select id="filtroFecha" class="filter-control">
+                        <option value="">Todas</option>
+                        <option value="2026-09-05">2026-09-05</option><option value="2026-09-07">2026-09-07</option><option value="2026-09-08">2026-09-08</option><option value="2026-09-09">2026-09-09</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Mes:</label>
+                    <select id="filtroMes" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="Septiembre">Septiembre</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Nombre:</label>
+                    <select id="filtroNombre" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CARLOS DANIEL VALERA PEREZ">CARLOS DANIEL VALERA PEREZ</option><option value="LEIDY PIRACHICAN  FALLA">LEIDY PIRACHICAN  FALLA</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="kpi-container">
+                <div class="kpi-card" onclick="switchTab('asistencia', document.querySelectorAll('.tab-link')[1])">
+                    <div class="kpi-title">Asistencia</div>
+                    <div class="kpi-value">62%</div>
+                </div>
+                <div class="kpi-card" onclick="switchTab('inventarios', document.querySelectorAll('.tab-link')[2])">
+                    <div class="kpi-title">Inventarios</div>
+                    <div class="kpi-value">57%</div>
+                </div>
+                <div class="kpi-card" onclick="switchTab('ventas', document.querySelectorAll('.tab-link')[3])">
+                    <div class="kpi-title">Ventas</div>
+                    <div class="kpi-value">25%</div>
+                </div>
+                <div class="kpi-card" onclick="switchTab('exhibiciones', document.querySelectorAll('.tab-link')[4])">
+                    <div class="kpi-title">Exhibiciones</div>
+                    <div class="kpi-value">57%</div>
+                </div>
+                <div class="kpi-card" onclick="switchTab('visita_pocs', document.querySelectorAll('.tab-link')[5])">
+                    <div class="kpi-title">Visita Pocs</div>
+                    <div class="kpi-value">67%</div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Nombre Completo</th>
+                            <th>Asistencia</th>
+                            <th>Inventarios</th>
+                            <th>Ventas</th>
+                            <th>Exhibiciones</th>
+                            <th>Visita Pocs</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mainTableBody">
+                        
+                    <tr data-fecha="2026-09-05" data-mes="Septiembre" data-nombre="CARLOS DANIEL VALERA PEREZ">
+                        <td>2026-09-05</td>
+                        <td>CARLOS DANIEL VALERA PEREZ</td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style=""></span></td>
+                    </tr>
+                    <tr data-fecha="2026-09-05" data-mes="Septiembre" data-nombre="LEIDY PIRACHICAN  FALLA">
+                        <td>2026-09-05</td>
+                        <td>LEIDY PIRACHICAN  FALLA</td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style=""></span></td>
+                    </tr>
+                    <tr data-fecha="2026-09-07" data-mes="Septiembre" data-nombre="CARLOS DANIEL VALERA PEREZ">
+                        <td>2026-09-07</td>
+                        <td>CARLOS DANIEL VALERA PEREZ</td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                    </tr>
+                    <tr data-fecha="2026-09-07" data-mes="Septiembre" data-nombre="LEIDY PIRACHICAN  FALLA">
+                        <td>2026-09-07</td>
+                        <td>LEIDY PIRACHICAN  FALLA</td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                    </tr>
+                    <tr data-fecha="2026-09-08" data-mes="Septiembre" data-nombre="CARLOS DANIEL VALERA PEREZ">
+                        <td>2026-09-08</td>
+                        <td>CARLOS DANIEL VALERA PEREZ</td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                    </tr>
+                    <tr data-fecha="2026-09-08" data-mes="Septiembre" data-nombre="LEIDY PIRACHICAN  FALLA">
+                        <td>2026-09-08</td>
+                        <td>LEIDY PIRACHICAN  FALLA</td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                    </tr>
+                    <tr data-fecha="2026-09-09" data-mes="Septiembre" data-nombre="LEIDY PIRACHICAN  FALLA">
+                        <td>2026-09-09</td>
+                        <td>LEIDY PIRACHICAN  FALLA</td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style=""></span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style=""></span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                    </tr>
+                    <tr data-fecha="2026-09-09" data-mes="Septiembre" data-nombre="CARLOS DANIEL VALERA PEREZ">
+                        <td>2026-09-09</td>
+                        <td>CARLOS DANIEL VALERA PEREZ</td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #f8d7da; color: #842029; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">0%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                        <td><span style="background-color: #d1e7dd; color: #0f5132; font-weight: 700; padding: 3px 6px; border-radius: 4px; display: inline-block;">100%</span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: ASISTENCIA -->
+        <div id="tab-asistencia" class="tab-content">
+            <div class="filters-bar-4">
+                <div class="filter-item">
+                    <label class="filter-label">Fecha:</label>
+                    <select id="astFiltroFecha" class="filter-control">
+                        <option value="">Todas</option>
+                        <option value="2026-09-05">2026-09-05</option><option value="2026-09-07">2026-09-07</option><option value="2026-09-08">2026-09-08</option><option value="2026-09-09">2026-09-09</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Mes:</label>
+                    <select id="astFiltroMes" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="2026-09">2026-09</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Nombre:</label>
+                    <select id="astFiltroNombre" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CARLOS DANIEL VALERA PEREZ">CARLOS DANIEL VALERA PEREZ</option><option value="LEIDY PIRACHICAN  FALLA">LEIDY PIRACHICAN  FALLA</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Estado:</label>
+                    <select id="astFiltroEstado" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="Asistió">Asistió</option><option value="Inasistencia">Inasistencia</option>
+                    </select>
+                </div>
+            </div>
+            <div class="section-box">
+                <div class="section-title">Asistencia</div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Nombre</th>
+                                <th>Malla</th>
+                                <th>Almuerzo</th>
+                                <th style="text-align: center;">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="asistenciaTableBody">
+                            <tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-estado="Inasistencia" style="background-color: #f8d7da; color: #842029;"><td style="white-space: nowrap; font-size: 11px;">2026-09-05</td><td style="font-weight: 600; font-size: 11px; word-break: break-word;">LEIDY PIRACHICAN  FALLA</td>
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        <td style="font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;">Inasistencia</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-estado="Asistió" ><td style="white-space: nowrap; font-size: 11px;">2026-09-05</td><td style="font-weight: 600; font-size: 11px; word-break: break-word;">CARLOS DANIEL VALERA PEREZ</td>
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 10:29:20</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.7617019255315, -74.045611113341')"><div id="m_ci_1" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ci_1", "4.7617019255315, -74.045611113341", 0.9); }, 300);</script>
+                    <div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788622160.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788622160.jpg')" alt="Img"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: 18:32:05</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.7616614995442, -74.045334277553')"><div id="m_co_1" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_co_1", "4.7616614995442, -74.045334277553", 0.9); }, 300);</script>
+                    <div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_4_1788651124.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_4_1788651124.jpg')" alt="Img"></div>
+                </div>
+            </div>
+        </td>
+        
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 13:56:06</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.7616565985917, -74.045255797351')"><div id="m_ai_1" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ai_1", "4.7616565985917, -74.045255797351", 0.9); }, 300);</script>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: 14:54:38</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.7616473133683, -74.045267449444')"><div id="m_ao_1" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ao_1", "4.7616473133683, -74.045267449444", 0.9); }, 300);</script>
+                </div>
+            </div>
+        </td>
+        <td style="font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;">Asistió</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-estado="Inasistencia" style="background-color: #f8d7da; color: #842029;"><td style="white-space: nowrap; font-size: 11px;">2026-09-07</td><td style="font-weight: 600; font-size: 11px; word-break: break-word;">LEIDY PIRACHICAN  FALLA</td>
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        <td style="font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;">Inasistencia</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-estado="Asistió" ><td style="white-space: nowrap; font-size: 11px;">2026-09-07</td><td style="font-weight: 600; font-size: 11px; word-break: break-word;">CARLOS DANIEL VALERA PEREZ</td>
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 10:30:45</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.6240846899146, -74.146289048577')"><div id="m_ci_3" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ci_3", "4.6240846899146, -74.146289048577", 0.9); }, 300);</script>
+                    <div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788795045.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788795045.jpg')" alt="Img"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: 17:59:36</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.6208407573702, -74.167134041609')"><div id="m_co_3" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_co_3", "4.6208407573702, -74.167134041609", 0.9); }, 300);</script>
+                    <div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_4_1788821976.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_4_1788821976.jpg')" alt="Img"></div>
+                </div>
+            </div>
+        </td>
+        
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 13:35:09</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.620639448294, -74.167098439231')"><div id="m_ai_3" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ai_3", "4.620639448294, -74.167098439231", 0.9); }, 300);</script>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: 14:35:43</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.6210263394217, -74.167221909833')"><div id="m_ao_3" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ao_3", "4.6210263394217, -74.167221909833", 0.9); }, 300);</script>
+                </div>
+            </div>
+        </td>
+        <td style="font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;">Asistió</td></tr><tr data-fecha="2026-09-08" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-estado="Inasistencia" style="background-color: #f8d7da; color: #842029;"><td style="white-space: nowrap; font-size: 11px;">2026-09-08</td><td style="font-weight: 600; font-size: 11px; word-break: break-word;">LEIDY PIRACHICAN  FALLA</td>
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        <td style="font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;">Inasistencia</td></tr><tr data-fecha="2026-09-08" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-estado="Asistió" ><td style="white-space: nowrap; font-size: 11px;">2026-09-08</td><td style="font-weight: 600; font-size: 11px; word-break: break-word;">CARLOS DANIEL VALERA PEREZ</td>
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 09:53:20</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.7493424499452, -74.046351872454')"><div id="m_ci_5" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ci_5", "4.7493424499452, -74.046351872454", 0.9); }, 300);</script>
+                    <div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788879198.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788879198.jpg')" alt="Img"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: 17:33:09</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.6082630866297, -74.07049272517')"><div id="m_co_5" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_co_5", "4.6082630866297, -74.07049272517", 0.9); }, 300);</script>
+                    <div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_4_1788906788.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_4_1788906788.jpg')" alt="Img"></div>
+                </div>
+            </div>
+        </td>
+        
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 13:11:53</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.6080806800789, -74.070707465338')"><div id="m_ai_5" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ai_5", "4.6080806800789, -74.070707465338", 0.9); }, 300);</script>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: 14:10:19</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.6082941827706, -74.070608163742')"><div id="m_ao_5" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ao_5", "4.6082941827706, -74.070608163742", 0.9); }, 300);</script>
+                </div>
+            </div>
+        </td>
+        <td style="font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;">Asistió</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-estado="Asistió" ><td style="white-space: nowrap; font-size: 11px;">2026-09-09</td><td style="font-weight: 600; font-size: 11px; word-break: break-word;">LEIDY PIRACHICAN  FALLA</td>
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 09:57:55</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.5865472, -74.0940546')"><div id="m_ci_6" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ci_6", "4.5865472, -74.0940546", 0.9); }, 300);</script>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        <td style="font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;">Asistió</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-estado="Asistió" ><td style="white-space: nowrap; font-size: 11px;">2026-09-09</td><td style="font-weight: 600; font-size: 11px; word-break: break-word;">CARLOS DANIEL VALERA PEREZ</td>
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 10:32:29</span>
+                    <div class="mini-map-card" onclick="openMapModal('0, 0')"><div id="m_ci_7" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ci_7", "0, 0", 0.9); }, 300);</script>
+                    <div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788967948.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788967948.jpg')" alt="Img"></div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                    <span style="font-size:9px; color:#888;">nan</span>
+                </div>
+            </div>
+        </td>
+        
+        <td style="padding: 4px; vertical-align: middle;">
+            <div style="display: flex; align-items: center; gap: 8px; justify-content: flex-start; white-space: nowrap;">
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #0f2b48;">IN: 13:31:08</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.751148848271, -74.095961742969')"><div id="m_ai_7" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ai_7", "4.751148848271, -74.095961742969", 0.9); }, 300);</script>
+                </div>
+                <div style="display: flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.02); padding: 2px 4px; border-radius: 3px;">
+                    <span style="font-size: 10px; font-weight: 700; color: #b94025;">OUT: 14:30:15</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.7501313154633, -74.09533178506')"><div id="m_ao_7" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("m_ao_7", "4.7501313154633, -74.09533178506", 0.9); }, 300);</script>
+                </div>
+            </div>
+        </td>
+        <td style="font-size: 11px; font-weight: 700; text-align: center; white-space: nowrap;">Asistió</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: INVENTARIOS -->
+        <div id="tab-inventarios" class="tab-content">
+            <div class="filters-bar-5">
+                <div class="filter-item">
+                    <label class="filter-label">Fecha:</label>
+                    <select id="inventariosFiltroFecha" class="filter-control">
+                        <option value="">Todas</option>
+                        <option value="2026-09-05">2026-09-05</option><option value="2026-09-07">2026-09-07</option><option value="2026-09-08">2026-09-08</option><option value="2026-09-09">2026-09-09</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Mes:</label>
+                    <select id="inventariosFiltroMes" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="2026-09">2026-09</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Nombre completo:</label>
+                    <select id="inventariosFiltroNombre" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CARLOS DANIEL VALERA PEREZ">CARLOS DANIEL VALERA PEREZ</option><option value="LEIDY PIRACHICAN  FALLA">LEIDY PIRACHICAN  FALLA</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Punto de Venta:</label>
+                    <select id="inventariosFiltroPV" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CAV BOGOTA CRA 7">CAV BOGOTA CRA 7</option><option value="CAV BOGOTA KENNEDY">CAV BOGOTA KENNEDY</option><option value="CAV BOGOTA PLAZA IMPERIAL">CAV BOGOTA PLAZA IMPERIAL</option><option value="CAV BOGOTA RESTREPO">CAV BOGOTA RESTREPO</option><option value="CAV BOGOTA SANTAFE">CAV BOGOTA SANTAFE</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Referencias:</label>
+                    <select id="inventariosFiltroRef" class="filter-control">
+                        <option value="">Todas</option>
+                        <option value="C30">C30</option><option value="C62">C62</option><option value="C80">C80</option><option value="E40">E40</option><option value="E95">E95</option><option value="EPIC 85">EPIC 85</option><option value="EPIC 88">EPIC 88</option><option value="HS 2553">HS 2553</option><option value="HS 2682">HS 2682</option><option value="S40">S40</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="kpi-container" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); max-width: 320px;">
+                <div class="kpi-card" style="cursor: default;">
+                    <div class="kpi-title">Suma Total Cantidad</div>
+                    <div class="kpi-value" id="inventariosTotalCantidad">111</div>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <div class="section-title">Inventarios</div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Fecha</th><th>Nombre completo</th><th>Punto de Venta</th><th>Cantidad</th><th>Referencias</th><th>Indicador</th><th>Mes</th></tr></thead><tbody id='inventariosTableBody'><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="C30" data-cantidad="5.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>5</td><td>C30</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="S40" data-cantidad="5.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>5</td><td>S40</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="C62" data-cantidad="2.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>2</td><td>C62</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="C80" data-cantidad="3.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>3</td><td>C80</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="EPIC 88" data-cantidad="3.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>3</td><td>EPIC 88</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="HS 2553" data-cantidad="1.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>1</td><td>HS 2553</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="E95" data-cantidad="4.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>4</td><td>E95</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="E40" data-cantidad="6.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>6</td><td>E40</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="HS 2682" data-cantidad="1.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>1</td><td>HS 2682</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="C30" data-cantidad="6.0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td>6</td><td>C30</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="S40" data-cantidad="3.0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td>3</td><td>S40</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="C62" data-cantidad="4.0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td>4</td><td>C62</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="C80" data-cantidad="2.0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td>2</td><td>C80</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="EPIC 85" data-cantidad="1.0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td>1</td><td>EPIC 85</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="HS 2553" data-cantidad="5.0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td>5</td><td>HS 2553</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="E40" data-cantidad="6.0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td>6</td><td>E40</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-08" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="C30" data-cantidad="2.0"><td>2026-09-08</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA CRA 7</td><td>2</td><td>C30</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-08" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="S40" data-cantidad="3.0"><td>2026-09-08</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA CRA 7</td><td>3</td><td>S40</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-08" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="C62" data-cantidad="3.0"><td>2026-09-08</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA CRA 7</td><td>3</td><td>C62</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-08" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="C80" data-cantidad="2.0"><td>2026-09-08</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA CRA 7</td><td>2</td><td>C80</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA RESTREPO" data-ref="C30" data-cantidad="3.0"><td>2026-09-09</td><td>LEIDY PIRACHICAN  FALLA</td><td>CAV BOGOTA RESTREPO</td><td>3</td><td>C30</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA RESTREPO" data-ref="S40" data-cantidad="7.0"><td>2026-09-09</td><td>LEIDY PIRACHICAN  FALLA</td><td>CAV BOGOTA RESTREPO</td><td>7</td><td>S40</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA RESTREPO" data-ref="C62" data-cantidad="2.0"><td>2026-09-09</td><td>LEIDY PIRACHICAN  FALLA</td><td>CAV BOGOTA RESTREPO</td><td>2</td><td>C62</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA RESTREPO" data-ref="C80" data-cantidad="3.0"><td>2026-09-09</td><td>LEIDY PIRACHICAN  FALLA</td><td>CAV BOGOTA RESTREPO</td><td>3</td><td>C80</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="C30" data-cantidad="5.0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>5</td><td>C30</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="S40" data-cantidad="5.0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>5</td><td>S40</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="C62" data-cantidad="3.0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>3</td><td>C62</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="C80" data-cantidad="1.0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>1</td><td>C80</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="EPIC 85" data-cantidad="4.0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>4</td><td>EPIC 85</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="HS 2553" data-cantidad="4.0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>4</td><td>HS 2553</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="E95" data-cantidad="3.0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>3</td><td>E95</td><td>Inventarios</td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="E40" data-cantidad="4.0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>4</td><td>E40</td><td>Inventarios</td><td>2026-09</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: VENTAS -->
+        <div id="tab-ventas" class="tab-content">
+            <div class="filters-bar-5">
+                <div class="filter-item">
+                    <label class="filter-label">Fecha:</label>
+                    <select id="ventasFiltroFecha" class="filter-control">
+                        <option value="">Todas</option>
+                        <option value="2026-09-05">2026-09-05</option><option value="2026-09-07">2026-09-07</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Mes:</label>
+                    <select id="ventasFiltroMes" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="2026-09">2026-09</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Nombre completo:</label>
+                    <select id="ventasFiltroNombre" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CARLOS DANIEL VALERA PEREZ">CARLOS DANIEL VALERA PEREZ</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Punto de Venta:</label>
+                    <select id="ventasFiltroPV" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CAV BOGOTA KENNEDY">CAV BOGOTA KENNEDY</option><option value="CAV BOGOTA SANTAFE">CAV BOGOTA SANTAFE</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Referencias:</label>
+                    <select id="ventasFiltroRef" class="filter-control">
+                        <option value="">Todas</option>
+                        <option value="C62">C62</option><option value="S40">S40</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="kpi-container" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); max-width: 320px;">
+                <div class="kpi-card" style="cursor: default;">
+                    <div class="kpi-title">Suma Total Cantidad</div>
+                    <div class="kpi-value" id="ventasTotalCantidad">3</div>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <div class="section-title">Ventas</div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Fecha</th><th>Nombre completo</th><th>Punto de Venta</th><th>Referencias</th><th>Cantidad</th><th>Indicador</th><th>Mes</th></tr></thead><tbody id='ventasTableBody'><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="S40" data-cantidad="1.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>S40</td><td>1</td><td>Ventas</td><td>2026-09</td></tr><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="C62" data-cantidad="1.0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td>C62</td><td>1</td><td>Ventas</td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="S40" data-cantidad="1.0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td>S40</td><td>1</td><td>Ventas</td><td>2026-09</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: EXHIBICIONES -->
+        <div id="tab-exhibiciones" class="tab-content">
+            <div class="filters-bar-4">
+                <div class="filter-item">
+                    <label class="filter-label">Fecha:</label>
+                    <select id="exhibicionesFiltroFecha" class="filter-control">
+                        <option value="">Todas</option>
+                        <option value="2026-09-05">2026-09-05</option><option value="2026-09-07">2026-09-07</option><option value="2026-09-08">2026-09-08</option><option value="2026-09-09">2026-09-09</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Mes:</label>
+                    <select id="exhibicionesFiltroMes" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="2026-09">2026-09</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Nombre completo:</label>
+                    <select id="exhibicionesFiltroNombre" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CARLOS DANIEL VALERA PEREZ">CARLOS DANIEL VALERA PEREZ</option><option value="LEIDY PIRACHICAN  FALLA">LEIDY PIRACHICAN  FALLA</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Punto de Venta:</label>
+                    <select id="exhibicionesFiltroPV" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CAV BOGOTA CRA 7">CAV BOGOTA CRA 7</option><option value="CAV BOGOTA KENNEDY">CAV BOGOTA KENNEDY</option><option value="CAV BOGOTA PLAZA IMPERIAL">CAV BOGOTA PLAZA IMPERIAL</option><option value="CAV BOGOTA RESTREPO">CAV BOGOTA RESTREPO</option><option value="CAV BOGOTA SANTAFE">CAV BOGOTA SANTAFE</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <div class="section-title">Exhibiciones</div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Fecha</th><th>Nombre completo</th><th>Punto de Venta</th><th>OBSERVACIONES</th><th>SOPORTE FOTOGRAFICO</th><th>Mes</th></tr></thead><tbody id='exhibicionesTableBody'><tr data-fecha="2026-09-05" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="" data-cantidad="0"><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA SANTAFE</td><td><div style="white-space: normal; word-break: break-word; max-width: 300px; font-size: 11px;">La mesa completa no funciona, las alarmas no funcionan y los relojes no están recibiendo carga a pesar de que todos tienen sus cargadores. El modelo C30 tampoco prende </div></td><td><div style="display: flex; gap: 4px; flex-wrap: wrap;"><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/answer/194/2_0.jpg?v=1788984502" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/answer/194/2_0.jpg?v=1788984502')" alt="Img"></div><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/answer/194/thumb_2_1.jpg?v=1788984502" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/answer/194/thumb_2_1.jpg?v=1788984502')" alt="Img"></div></div></td><td>2026-09</td></tr><tr data-fecha="2026-09-07" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="" data-cantidad="0"><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA KENNEDY</td><td><div style="white-space: normal; word-break: break-word; max-width: 300px; font-size: 11px;">Reloj C30, no carga. </div></td><td><div style="display: flex; gap: 4px; flex-wrap: wrap;"><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/answer/194/8_0.jpg?v=1788984502" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/answer/194/8_0.jpg?v=1788984502')" alt="Img"></div></div></td><td>2026-09</td></tr><tr data-fecha="2026-09-08" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="" data-cantidad="0"><td>2026-09-08</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA CRA 7</td><td><div style="white-space: normal; word-break: break-word; max-width: 300px; font-size: 11px;">El cargador del C30 no funciona</div></td><td><div style="display: flex; gap: 4px; flex-wrap: wrap;"><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/answer/194/12_0.jpg?v=1788984502" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/answer/194/12_0.jpg?v=1788984502')" alt="Img"></div></div></td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA RESTREPO" data-ref="" data-cantidad="0"><td>2026-09-09</td><td>LEIDY PIRACHICAN  FALLA</td><td>CAV BOGOTA RESTREPO</td><td><div style="white-space: normal; word-break: break-word; max-width: 300px; font-size: 11px;">mesa con exhibición completa de relojes, tenemos una novedad con la mesa ya q esta inestable y hay riesgo de que se caiga, tenemos exhibición de diadema pero no contamos con inventario</div></td><td><div style="display: flex; gap: 4px; flex-wrap: wrap;"><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/answer/194/14_0.jpg?v=1788984502" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/answer/194/14_0.jpg?v=1788984502')" alt="Img"></div><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/answer/194/thumb_14_1.jpg?v=1788984502" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/answer/194/thumb_14_1.jpg?v=1788984502')" alt="Img"></div><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/answer/194/thumb_14_2.jpg?v=1788984502" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/answer/194/thumb_14_2.jpg?v=1788984502')" alt="Img"></div></div></td><td>2026-09</td></tr><tr data-fecha="2026-09-09" data-mes="2026-09" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="" data-cantidad="0"><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td><div style="white-space: normal; word-break: break-word; max-width: 300px; font-size: 11px;"></div></td><td><div style="display: flex; gap: 4px; flex-wrap: wrap;"><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/answer/194/16_0.jpg?v=1788984502" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/answer/194/16_0.jpg?v=1788984502')" alt="Img"></div></div></td><td>2026-09</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: VISITA POCS -->
+        <div id="tab-visita_pocs" class="tab-content">
+            <div class="filters-bar-4">
+                <div class="filter-item">
+                    <label class="filter-label">Fecha:</label>
+                    <select id="visita_pocsFiltroFecha" class="filter-control">
+                        <option value="">Todas</option>
+                        <option value="2026-09-01">2026-09-01</option><option value="2026-09-02">2026-09-02</option><option value="2026-09-03">2026-09-03</option><option value="2026-09-04">2026-09-04</option><option value="2026-09-05">2026-09-05</option><option value="2026-09-07">2026-09-07</option><option value="2026-09-08">2026-09-08</option><option value="2026-09-09">2026-09-09</option><option value="2026-09-10">2026-09-10</option><option value="2026-09-11">2026-09-11</option><option value="2026-09-12">2026-09-12</option><option value="2026-09-14">2026-09-14</option><option value="2026-09-15">2026-09-15</option><option value="2026-09-16">2026-09-16</option><option value="2026-09-17">2026-09-17</option><option value="2026-09-18">2026-09-18</option><option value="2026-09-19">2026-09-19</option><option value="2026-09-21">2026-09-21</option><option value="2026-09-22">2026-09-22</option><option value="2026-09-23">2026-09-23</option><option value="2026-09-24">2026-09-24</option><option value="2026-09-25">2026-09-25</option><option value="2026-09-26">2026-09-26</option><option value="2026-09-28">2026-09-28</option><option value="2026-09-29">2026-09-29</option><option value="2026-09-30">2026-09-30</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Mes:</label>
+                    <select id="visita_pocsFiltroMes" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="9">9</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Nombre completo:</label>
+                    <select id="visita_pocsFiltroNombre" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="CARLOS DANIEL VALERA PEREZ">CARLOS DANIEL VALERA PEREZ</option><option value="LEIDY PIRACHICAN  FALLA">LEIDY PIRACHICAN  FALLA</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label class="filter-label">Punto de Venta:</label>
+                    <select id="visita_pocsFiltroPV" class="filter-control">
+                        <option value="">Todos</option>
+                        <option value="ALMACEN-1 CENTRO MAYOR">ALMACEN-1 CENTRO MAYOR</option><option value="ALMACEN-15 HAYUELOS">ALMACEN-15 HAYUELOS</option><option value="ALMACEN-23 SUBA PLAZA">ALMACEN-23 SUBA PLAZA</option><option value="ALMACEN-34 TITAN">ALMACEN-34 TITAN</option><option value="ALMACEN-4 PLAZA AMERICAS (NUEVO)">ALMACEN-4 PLAZA AMERICAS (NUEVO)</option><option value="ALMACEN-7 UNICENTRO BOGOTA">ALMACEN-7 UNICENTRO BOGOTA</option><option value="CAV BOGOTA CRA 7">CAV BOGOTA CRA 7</option><option value="CAV BOGOTA FONTIBON">CAV BOGOTA FONTIBON</option><option value="CAV BOGOTA KENNEDY">CAV BOGOTA KENNEDY</option><option value="CAV BOGOTA PASEO DEL RIO">CAV BOGOTA PASEO DEL RIO</option><option value="CAV BOGOTA PLAZA CLARO">CAV BOGOTA PLAZA CLARO</option><option value="CAV BOGOTA PLAZA IMPERIAL">CAV BOGOTA PLAZA IMPERIAL</option><option value="CAV BOGOTA RESTREPO">CAV BOGOTA RESTREPO</option><option value="CAV BOGOTA SANTAFE">CAV BOGOTA SANTAFE</option><option value="CAV BOGOTA UNICENTRO">CAV BOGOTA UNICENTRO</option><option value="CAV BOGOTA VENECIA">CAV BOGOTA VENECIA</option><option value="CAV CHIA FONTANAR">CAV CHIA FONTANAR</option><option value="CAV MOSQUERA">CAV MOSQUERA</option><option value="CAV SOACHA MERCURIO">CAV SOACHA MERCURIO</option><option value="CAV ZIPAQUIRA">CAV ZIPAQUIRA</option><option value="TIENDA SOACHA VENTURA TERREROS">TIENDA SOACHA VENTURA TERREROS</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="section-box">
+                <div class="section-title">Visita Pocs</div>
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>MES</th><th>Frecuencia</th><th>Punto de Venta</th><th>Fecha Visita</th><th>Nombre completo</th><th>val</th><th>Cobertura</th><th>Check in</th><th>Imagen Check In</th><th>Check out</th><th>Geo</th></tr></thead><tbody id='visita_pocsTableBody'><tr data-fecha="2026-09-01" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA PASEO DEL RIO" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>CAV BOGOTA PASEO DEL RIO</td><td>2026-09-01</td><td>LEIDY PIRACHICAN  FALLA</td><td>15</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-02" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="TIENDA SOACHA VENTURA TERREROS" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>TIENDA SOACHA VENTURA TERREROS</td><td>2026-09-02</td><td>LEIDY PIRACHICAN  FALLA</td><td>23</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-03" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA KENNEDY" data-ref="" data-cantidad="0"><td>9</td><td>5</td><td>CAV BOGOTA KENNEDY</td><td>2026-09-03</td><td>LEIDY PIRACHICAN  FALLA</td><td>17</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-03" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="" data-cantidad="0"><td>9</td><td>5</td><td>CAV BOGOTA KENNEDY</td><td>2026-09-03</td><td>CARLOS DANIEL VALERA PEREZ</td><td>17</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-04" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="" data-cantidad="0"><td>9</td><td>6</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>2026-09-04</td><td>LEIDY PIRACHICAN  FALLA</td><td>12</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-04" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="" data-cantidad="0"><td>9</td><td>6</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>2026-09-04</td><td>CARLOS DANIEL VALERA PEREZ</td><td>12</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-05" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA SANTAFE" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA SANTAFE</td><td>2026-09-05</td><td>LEIDY PIRACHICAN  FALLA</td><td>10</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-05" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA SANTAFE</td><td>2026-09-05</td><td>CARLOS DANIEL VALERA PEREZ</td><td>10</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-07" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA PLAZA CLARO" data-ref="" data-cantidad="0"><td>9</td><td>3</td><td>CAV BOGOTA PLAZA CLARO</td><td>2026-09-07</td><td>LEIDY PIRACHICAN  FALLA</td><td>14</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-07" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="" data-cantidad="0"><td>9</td><td>5</td><td>CAV BOGOTA KENNEDY</td><td>2026-09-07</td><td>CARLOS DANIEL VALERA PEREZ</td><td>17</td><td>Visitado</td><td>11:00:18</td><td><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788795068.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788795068.jpg')" alt="Img"></div></td><td>17:59:54</td><td><div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size:11px; color:#0f2b48; font-weight:600;">4.620896, -74.167171</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.620896, -74.167171')"><div id="map_generic_visita_pocs_9" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div>
+                </div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("map_generic_visita_pocs_9", "4.620896, -74.167171", 0.9); }, 300);</script></td></tr><tr data-fecha="2026-09-08" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV ZIPAQUIRA" data-ref="" data-cantidad="0"><td>9</td><td>1</td><td>CAV ZIPAQUIRA</td><td>2026-09-08</td><td>LEIDY PIRACHICAN  FALLA</td><td>2</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-08" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA CRA 7</td><td>2026-09-08</td><td>CARLOS DANIEL VALERA PEREZ</td><td>19</td><td>Visitado</td><td>12:13:10</td><td><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788885488.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788885488.jpg')" alt="Img"></div></td><td>17:32:54</td><td><div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size:11px; color:#0f2b48; font-weight:600;">4.608247, -74.070403</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.608247, -74.070403')"><div id="map_generic_visita_pocs_11" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div>
+                </div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("map_generic_visita_pocs_11", "4.608247, -74.070403", 0.9); }, 300);</script></td></tr><tr data-fecha="2026-09-09" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA RESTREPO" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>CAV BOGOTA RESTREPO</td><td>2026-09-09</td><td>LEIDY PIRACHICAN  FALLA</td><td>11</td><td>Visitado</td><td>10:08:09</td><td><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/2_2_1_1788966489.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/2_2_1_1788966489.jpg')" alt="Img"></div></td><td></td><td><div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size:11px; color:#0f2b48; font-weight:600;">4.586432, -74.094145</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.586432, -74.094145')"><div id="map_generic_visita_pocs_12" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div>
+                </div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("map_generic_visita_pocs_12", "4.586432, -74.094145", 0.9); }, 300);</script></td></tr><tr data-fecha="2026-09-09" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="" data-cantidad="0"><td>9</td><td>6</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>2026-09-09</td><td>CARLOS DANIEL VALERA PEREZ</td><td>12</td><td>Visitado</td><td>10:48:42</td><td><div class="img-thumb-container"><img src="https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788968722.jpg" class="img-thumb" onclick="openImageModal('https://powertrade.manpower-powertrade.com/docs/media/attendance/2026/194/3_2_1_1788968722.jpg')" alt="Img"></div></td><td></td><td><div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size:11px; color:#0f2b48; font-weight:600;">4.751101, -74.095872</span>
+                    <div class="mini-map-card" onclick="openMapModal('4.751101, -74.095872')"><div id="map_generic_visita_pocs_13" class="mini-leaflet-map"></div><div class="mini-map-overlay-text">📍</div></div>
+                </div><script>setTimeout(() => { if(typeof initMiniMap === "function") initMiniMap("map_generic_visita_pocs_13", "4.751101, -74.095872", 0.9); }, 300);</script></td></tr><tr data-fecha="2026-09-10" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA PLAZA CLARO" data-ref="" data-cantidad="0"><td>9</td><td>3</td><td>CAV BOGOTA PLAZA CLARO</td><td>2026-09-10</td><td>LEIDY PIRACHICAN  FALLA</td><td>14</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-11" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA VENECIA" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>CAV BOGOTA VENECIA</td><td>2026-09-11</td><td>LEIDY PIRACHICAN  FALLA</td><td>7</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-11" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="" data-cantidad="0"><td>9</td><td>5</td><td>CAV BOGOTA KENNEDY</td><td>2026-09-11</td><td>CARLOS DANIEL VALERA PEREZ</td><td>17</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-12" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV SOACHA MERCURIO" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV SOACHA MERCURIO</td><td>2026-09-12</td><td>LEIDY PIRACHICAN  FALLA</td><td>3</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-12" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV CHIA FONTANAR" data-ref="" data-cantidad="0"><td>9</td><td>3</td><td>CAV CHIA FONTANAR</td><td>2026-09-12</td><td>CARLOS DANIEL VALERA PEREZ</td><td>6</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-14" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV MOSQUERA" data-ref="" data-cantidad="0"><td>9</td><td>1</td><td>CAV MOSQUERA</td><td>2026-09-14</td><td>LEIDY PIRACHICAN  FALLA</td><td>4</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-14" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="ALMACEN-23 SUBA PLAZA" data-ref="" data-cantidad="0"><td>9</td><td>1</td><td>ALMACEN-23 SUBA PLAZA</td><td>2026-09-14</td><td>CARLOS DANIEL VALERA PEREZ</td><td>30</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-14" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="" data-cantidad="0"><td>9</td><td>6</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>2026-09-14</td><td>CARLOS DANIEL VALERA PEREZ</td><td>12</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-15" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="ALMACEN-4 PLAZA AMERICAS (NUEVO)" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>ALMACEN-4 PLAZA AMERICAS (NUEVO)</td><td>2026-09-15</td><td>LEIDY PIRACHICAN  FALLA</td><td>32</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-15" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA SANTAFE</td><td>2026-09-15</td><td>CARLOS DANIEL VALERA PEREZ</td><td>10</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-16" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA UNICENTRO" data-ref="" data-cantidad="0"><td>9</td><td>1</td><td>CAV BOGOTA UNICENTRO</td><td>2026-09-16</td><td>LEIDY PIRACHICAN  FALLA</td><td>8</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-16" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="ALMACEN-7 UNICENTRO BOGOTA" data-ref="" data-cantidad="0"><td>9</td><td>1</td><td>ALMACEN-7 UNICENTRO BOGOTA</td><td>2026-09-16</td><td>LEIDY PIRACHICAN  FALLA</td><td>34</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-16" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="ALMACEN-34 TITAN" data-ref="" data-cantidad="0"><td>9</td><td>1</td><td>ALMACEN-34 TITAN</td><td>2026-09-16</td><td>CARLOS DANIEL VALERA PEREZ</td><td>31</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-17" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA CRA 7</td><td>2026-09-17</td><td>CARLOS DANIEL VALERA PEREZ</td><td>19</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-18" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA FONTIBON" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>CAV BOGOTA FONTIBON</td><td>2026-09-18</td><td>LEIDY PIRACHICAN  FALLA</td><td>18</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-18" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="ALMACEN-1 CENTRO MAYOR" data-ref="" data-cantidad="0"><td>9</td><td>1</td><td>ALMACEN-1 CENTRO MAYOR</td><td>2026-09-18</td><td>CARLOS DANIEL VALERA PEREZ</td><td>24</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-19" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV SOACHA MERCURIO" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV SOACHA MERCURIO</td><td>2026-09-19</td><td>LEIDY PIRACHICAN  FALLA</td><td>3</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-19" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="ALMACEN-15 HAYUELOS" data-ref="" data-cantidad="0"><td>9</td><td>1</td><td>ALMACEN-15 HAYUELOS</td><td>2026-09-19</td><td>CARLOS DANIEL VALERA PEREZ</td><td>27</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-19" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>2026-09-19</td><td>CARLOS DANIEL VALERA PEREZ</td><td>12</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-21" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="TIENDA SOACHA VENTURA TERREROS" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>TIENDA SOACHA VENTURA TERREROS</td><td>2026-09-21</td><td>LEIDY PIRACHICAN  FALLA</td><td>23</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-21" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV CHIA FONTANAR" data-ref="" data-cantidad="0"><td>9</td><td>3</td><td>CAV CHIA FONTANAR</td><td>2026-09-21</td><td>CARLOS DANIEL VALERA PEREZ</td><td>6</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-22" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA PASEO DEL RIO" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>CAV BOGOTA PASEO DEL RIO</td><td>2026-09-22</td><td>LEIDY PIRACHICAN  FALLA</td><td>15</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-22" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA KENNEDY" data-ref="" data-cantidad="0"><td>9</td><td>5</td><td>CAV BOGOTA KENNEDY</td><td>2026-09-22</td><td>CARLOS DANIEL VALERA PEREZ</td><td>17</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-23" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA VENECIA" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>CAV BOGOTA VENECIA</td><td>2026-09-23</td><td>LEIDY PIRACHICAN  FALLA</td><td>7</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-24" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV SOACHA MERCURIO" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV SOACHA MERCURIO</td><td>2026-09-24</td><td>LEIDY PIRACHICAN  FALLA</td><td>3</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-24" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA PLAZA IMPERIAL" data-ref="" data-cantidad="0"><td>9</td><td>6</td><td>CAV BOGOTA PLAZA IMPERIAL</td><td>2026-09-24</td><td>CARLOS DANIEL VALERA PEREZ</td><td>12</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-25" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="ALMACEN-4 PLAZA AMERICAS (NUEVO)" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>ALMACEN-4 PLAZA AMERICAS (NUEVO)</td><td>2026-09-25</td><td>LEIDY PIRACHICAN  FALLA</td><td>32</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-25" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA CRA 7</td><td>2026-09-25</td><td>CARLOS DANIEL VALERA PEREZ</td><td>19</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-26" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA PLAZA CLARO" data-ref="" data-cantidad="0"><td>9</td><td>3</td><td>CAV BOGOTA PLAZA CLARO</td><td>2026-09-26</td><td>LEIDY PIRACHICAN  FALLA</td><td>14</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-26" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA SANTAFE" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA SANTAFE</td><td>2026-09-26</td><td>CARLOS DANIEL VALERA PEREZ</td><td>10</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-28" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA RESTREPO" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>CAV BOGOTA RESTREPO</td><td>2026-09-28</td><td>LEIDY PIRACHICAN  FALLA</td><td>11</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-29" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV BOGOTA FONTIBON" data-ref="" data-cantidad="0"><td>9</td><td>2</td><td>CAV BOGOTA FONTIBON</td><td>2026-09-29</td><td>LEIDY PIRACHICAN  FALLA</td><td>18</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-29" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV BOGOTA CRA 7" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV BOGOTA CRA 7</td><td>2026-09-29</td><td>CARLOS DANIEL VALERA PEREZ</td><td>19</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-30" data-mes="9" data-nombre="LEIDY PIRACHICAN  FALLA" data-pv="CAV SOACHA MERCURIO" data-ref="" data-cantidad="0"><td>9</td><td>4</td><td>CAV SOACHA MERCURIO</td><td>2026-09-30</td><td>LEIDY PIRACHICAN  FALLA</td><td>3</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr><tr data-fecha="2026-09-30" data-mes="9" data-nombre="CARLOS DANIEL VALERA PEREZ" data-pv="CAV CHIA FONTANAR" data-ref="" data-cantidad="0"><td>9</td><td>3</td><td>CAV CHIA FONTANAR</td><td>2026-09-30</td><td>CARLOS DANIEL VALERA PEREZ</td><td>6</td><td>No Visitado</td><td></td><td></td><td></td><td></td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Mapa -->
+    <div id="mapModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeMapModal()">&times;</span>
+            <h3 style="font-size: 15px; color: #0f2b48; margin-bottom: 6px; font-weight: 700;">Ubicación Geográfica</h3>
+            <div id="fullMap"></div>
+        </div>
+    </div>
+
+    <!-- Modal para Imagen -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content" style="text-align: center;">
+            <span class="close-modal" onclick="closeImageModal()">&times;</span>
+            <h3 style="font-size: 15px; color: #0f2b48; margin-bottom: 6px; font-weight: 700;">Visualización de Imagen</h3>
+            <div style="overflow: hidden; border-radius: 8px; display: inline-block; width: 100%;">
+                <img id="fullImage" src="" alt="Imagen ampliada" onclick="toggleImageZoom(this)">
+            </div>
+            <p style="font-size: 11px; color: #64748b; margin-top: 6px;">Haz clic sobre la imagen para hacer zoom</p>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        function switchTab(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-link').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if(element) element.classList.add('active');
+
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+            }, 200);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Filtros Indicadores
+            const filtroFecha = document.getElementById('filtroFecha');
+            const filtroMes = document.getElementById('filtroMes');
+            const filtroNombre = document.getElementById('filtroNombre');
+            const mainRows = document.querySelectorAll('#mainTableBody tr');
+
+            function filterMainTable() {
+                const fFecha = (filtroFecha.value || '').toLowerCase().trim();
+                const fMes = (filtroMes.value || '').toLowerCase().trim();
+                const fNombre = (filtroNombre.value || '').toLowerCase().trim();
+
+                mainRows.forEach(row => {
+                    const fecha = (row.getAttribute('data-fecha') || '').toLowerCase().trim();
+                    const mes = (row.getAttribute('data-mes') || '').toLowerCase().trim();
+                    const nombre = (row.getAttribute('data-nombre') || '').toLowerCase().trim();
+
+                    const matchFecha = !fFecha || fecha === fFecha;
+                    const matchMes = !fMes || mes === fMes;
+                    const matchNombre = !fNombre || nombre === fNombre;
+
+                    row.style.display = (matchFecha && matchMes && matchNombre) ? '' : 'none';
+                });
+            }
+            if(filtroFecha) filtroFecha.addEventListener('change', filterMainTable);
+            if(filtroMes) filtroMes.addEventListener('change', filterMainTable);
+            if(filtroNombre) filtroNombre.addEventListener('change', filterMainTable);
+
+            // Filtros Asistencia en Cascada cruzada
+            function setupAsistenciaCrossFilter() {
+                const astFecha = document.getElementById('astFiltroFecha');
+                const astMes = document.getElementById('astFiltroMes');
+                const astNombre = document.getElementById('astFiltroNombre');
+                const astEstado = document.getElementById('astFiltroEstado');
+                const astRows = document.querySelectorAll('#asistenciaTableBody tr');
+                const selects = [astFecha, astMes, astNombre, astEstado];
+
+                function updateAstDropdownOptions(activeSelect) {
+                    selects.forEach(sel => {
+                        if (!sel || sel === activeSelect) return;
+                        const selKey = sel.id.replace('astFiltro', '').toLowerCase();
+                        const validOptions = new Set();
+
+                        astRows.forEach(row => {
+                            const rFecha = row.getAttribute('data-fecha') || '';
+                            const rMes = row.getAttribute('data-mes') || '';
+                            const rNombre = row.getAttribute('data-nombre') || '';
+                            const rEstado = row.getAttribute('data-estado') || '';
+
+                            const matchF = !astFecha.value || rFecha === astFecha.value;
+                            const matchM = !astMes.value || rMes === astMes.value;
+                            const matchN = !astNombre.value || rNombre === astNombre.value;
+                            const matchE = !astEstado.value || rEstado === astEstado.value;
+
+                            let passOthers = true;
+                            if (selKey === 'fecha') passOthers = (matchM && matchN && matchE);
+                            if (selKey === 'mes') passOthers = (matchF && matchN && matchE);
+                            if (selKey === 'nombre') passOthers = (matchF && matchM && matchE);
+                            if (selKey === 'estado') passOthers = (matchF && matchM && matchN);
+
+                            if (passOthers) {
+                                if (selKey === 'fecha' && rFecha) validOptions.add(rFecha);
+                                if (selKey === 'mes' && rMes) validOptions.add(rMes);
+                                if (selKey === 'nombre' && rNombre) validOptions.add(rNombre);
+                                if (selKey === 'estado' && rEstado) validOptions.add(rEstado);
+                            }
+                        });
+
+                        Array.from(sel.options).forEach((opt, idx) => {
+                            if (idx === 0) return;
+                            if (validOptions.has(opt.value)) {
+                                opt.hidden = false;
+                            } else {
+                                opt.hidden = true;
+                                if (sel.value === opt.value) sel.value = "";
+                            }
+                        });
+                    });
+                }
+
+                function applyAstFilters(changedSelect) {
+                    updateAstDropdownOptions(changedSelect);
+
+                    const fFecha = (astFecha.value || '').toLowerCase().trim();
+                    const fMes = (astMes.value || '').toLowerCase().trim();
+                    const fNombre = (astNombre.value || '').toLowerCase().trim();
+                    const fEstado = (astEstado.value || '').toLowerCase().trim();
+
+                    astRows.forEach(row => {
+                        const fecha = (row.getAttribute('data-fecha') || '').toLowerCase().trim();
+                        const mes = (row.getAttribute('data-mes') || '').toLowerCase().trim();
+                        const nombre = (row.getAttribute('data-nombre') || '').toLowerCase().trim();
+                        const estado = (row.getAttribute('data-estado') || '').toLowerCase().trim();
+
+                        const matchFecha = !fFecha || fecha.includes(fFecha);
+                        const matchMes = !fMes || mes === fMes;
+                        const matchNombre = !fNombre || nombre === fNombre;
+                        const matchEstado = !fEstado || estado === fEstado;
+
+                        row.style.display = (matchFecha && matchMes && matchNombre && matchEstado) ? '' : 'none';
+                    });
+                }
+
+                selects.forEach(sel => {
+                    if(sel) sel.addEventListener('change', () => applyAstFilters(sel));
+                });
+            }
+            setupAsistenciaCrossFilter();
+
+            // Motor general de Filtros en Cascada para Inventarios, Ventas, Exhibiciones y Visita Pocs
+            function setupCrossFilter(prefix, hasRef = false) {
+                const fFecha = document.getElementById(prefix + 'FiltroFecha');
+                const fMes = document.getElementById(prefix + 'FiltroMes');
+                const fNombre = document.getElementById(prefix + 'FiltroNombre');
+                const fPV = document.getElementById(prefix + 'FiltroPV');
+                const fRef = hasRef ? document.getElementById(prefix + 'FiltroRef') : null;
+                const rows = document.querySelectorAll('#' + prefix + 'TableBody tr');
+                const totalQtyElem = document.getElementById(prefix + 'TotalCantidad');
+
+                const selects = hasRef ? [fFecha, fMes, fNombre, fPV, fRef] : [fFecha, fMes, fNombre, fPV];
+
+                function updateDropdownOptions(activeChangedSelect) {
+                    if (activeChangedSelect === fFecha && fFecha && fFecha.value !== "") {
+                        const matchedRow = Array.from(rows).find(r => r.getAttribute('data-fecha') === fFecha.value);
+                        if (matchedRow && fMes) {
+                            fMes.value = matchedRow.getAttribute('data-mes');
+                        }
+                    }
+
+                    selects.forEach(sel => {
+                        if (!sel || sel === activeChangedSelect) return;
+                        const selKey = sel.id.replace(prefix + 'Filtro', '').toLowerCase();
+                        const validOptions = new Set();
+
+                        rows.forEach(row => {
+                            const rFecha = row.getAttribute('data-fecha') || '';
+                            const rMes = row.getAttribute('data-mes') || '';
+                            const rNombre = row.getAttribute('data-nombre') || '';
+                            const rPV = row.getAttribute('data-pv') || '';
+                            const rRef = hasRef ? (row.getAttribute('data-ref') || '') : '';
+
+                            const matchF = !fFecha || !fFecha.value || rFecha === fFecha.value;
+                            const matchM = !fMes || !fMes.value || rMes === fMes.value;
+                            const matchN = !fNombre || !fNombre.value || rNombre === fNombre.value;
+                            const matchP = !fPV || !fPV.value || rPV === fPV.value;
+                            const matchR = !hasRef || !fRef || !fRef.value || rRef === fRef.value;
+
+                            let passOthers = true;
+                            if (selKey === 'fecha') passOthers = (matchM && matchN && matchP && matchR);
+                            if (selKey === 'mes') passOthers = (matchF && matchN && matchP && matchR);
+                            if (selKey === 'nombre') passOthers = (matchF && matchM && matchP && matchR);
+                            if (selKey === 'pv') passOthers = (matchF && matchM && matchN && matchR);
+                            if (hasRef && selKey === 'ref') passOthers = (matchF && matchM && matchN && matchP);
+
+                            if (passOthers) {
+                                if (selKey === 'fecha' && rFecha) validOptions.add(rFecha);
+                                if (selKey === 'mes' && rMes) validOptions.add(rMes);
+                                if (selKey === 'nombre' && rNombre) validOptions.add(rNombre);
+                                if (selKey === 'pv' && rPV) validOptions.add(rPV);
+                                if (hasRef && selKey === 'ref' && rRef) validOptions.add(rRef);
+                            }
+                        });
+
+                        Array.from(sel.options).forEach((opt, idx) => {
+                            if (idx === 0) return;
+                            if (validOptions.has(opt.value)) {
+                                opt.hidden = false;
+                            } else {
+                                opt.hidden = true;
+                                if (sel.value === opt.value) sel.value = "";
+                            }
+                        });
+                    });
+                }
+
+                function applyFilters(changedSelect) {
+                    updateDropdownOptions(changedSelect);
+
+                    const valFecha = fFecha ? (fFecha.value || '').toLowerCase().trim() : '';
+                    const valMes = fMes ? (fMes.value || '').toLowerCase().trim() : '';
+                    const valNombre = fNombre ? (fNombre.value || '').toLowerCase().trim() : '';
+                    const valPV = fPV ? (fPV.value || '').toLowerCase().trim() : '';
+                    const valRef = hasRef && fRef ? (fRef.value || '').toLowerCase().trim() : '';
+
+                    let runningTotal = 0;
+
+                    rows.forEach(row => {
+                        const fecha = (row.getAttribute('data-fecha') || '').toLowerCase().trim();
+                        const mes = (row.getAttribute('data-mes') || '').toLowerCase().trim();
+                        const nombre = (row.getAttribute('data-nombre') || '').toLowerCase().trim();
+                        const pv = (row.getAttribute('data-pv') || '').toLowerCase().trim();
+                        const ref = hasRef ? (row.getAttribute('data-ref') || '').toLowerCase().trim() : '';
+                        const cantidad = parseFloat(row.getAttribute('data-cantidad') || '0');
+
+                        const matchFecha = !valFecha || fecha === valFecha;
+                        const matchMes = !valMes || mes === valMes;
+                        const matchNombre = !valNombre || nombre === valNombre;
+                        const matchPV = !valPV || pv === valPV;
+                        const matchRef = !hasRef || !valRef || ref === valRef;
+
+                        if (matchFecha && matchMes && matchNombre && matchPV && matchRef) {
+                            row.style.display = '';
+                            runningTotal += cantidad;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    if(totalQtyElem) {
+                        totalQtyElem.textContent = runningTotal.toLocaleString('en-US', {maximumFractionDigits: 2});
+                    }
+                }
+
+                selects.forEach(sel => {
+                    if(sel) {
+                        sel.addEventListener('change', () => applyFilters(sel));
+                    }
+                });
+            }
+
+            setupCrossFilter('inventarios', true);
+            setupCrossFilter('ventas', true);
+            setupCrossFilter('exhibiciones', false);
+            setupCrossFilter('visita_pocs', false);
+        });
+
+        let modalMapInstance = null;
+        const activeMiniMaps = {};
+
+        function initMiniMap(mapId, coordsStr, zoomFactor = 0.9) {
+            const parts = coordsStr.split(',');
+            if(parts.length !== 2) return;
+            const lat = parseFloat(parts[0].trim());
+            const lon = parseFloat(parts[1].trim());
+
+            if(document.getElementById(mapId) && !activeMiniMaps[mapId]) {
+                // Ajuste de zoom al 90% (nivel base 15 escalado al 90% ~ 14 o aplicando un zoom relativo)
+                const map = L.map(mapId, {
+                    zoomControl: false,
+                    attributionControl: false,
+                    dragging: false,
+                    scrollWheelZoom: false,
+                    doubleClickZoom: false
+                }).setView([lat, lon], 14);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19
+                }).addTo(map);
+
+                L.circleMarker([lat, lon], {
+                    radius: 4,
+                    color: '#0f2b48',
+                    fillColor: '#b94025',
+                    fillOpacity: 0.9,
+                    weight: 1
+                }).addTo(map);
+
+                activeMiniMaps[mapId] = map;
+            }
+        }
+
+        function openMapModal(coordsStr) {
+            const modal = document.getElementById('mapModal');
+            modal.classList.add('show');
+
+            const parts = coordsStr.split(',');
+            if(parts.length === 2) {
+                const lat = parseFloat(parts[0].trim());
+                const lon = parseFloat(parts[1].trim());
+
+                setTimeout(() => {
+                    if(!modalMapInstance) {
+                        // Zoom al 90% para el mapa modal grande (aprox zoom 15 o 16 ajustado)
+                        modalMapInstance = L.map('fullMap').setView([lat, lon], 15);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19,
+                            attribution: '© OpenStreetMap contributors'
+                        }).addTo(modalMapInstance);
+                    } else {
+                        modalMapInstance.setView([lat, lon], 15);
+                        modalMapInstance.invalidateSize();
+                    }
+                    
+                    modalMapInstance.eachLayer((layer) => {
+                        if (layer instanceof L.Marker || layer instanceof L.CircleMarker) {
+                            modalMapInstance.removeLayer(layer);
+                        }
+                    });
+
+                    L.marker([lat, lon]).addTo(modalMapInstance)
+                        .bindPopup("Coordenadas: " + coordsStr)
+                        .openPopup();
+                }, 250);
+            }
+        }
+
+        function closeMapModal() {
+            document.getElementById('mapModal').classList.remove('show');
+        }
+
+        function openImageModal(imgSrc) {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('fullImage');
+            img.classList.remove('zoomed');
+            img.src = imgSrc;
+            // Configurar zoom inicial al 90% en la visualización modal
+            img.style.transform = "scale(0.9)";
+            modal.classList.add('show');
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            const img = document.getElementById('fullImage');
+            img.classList.remove('zoomed');
+            img.style.transform = "none";
+            modal.classList.remove('show');
+        }
+
+        function toggleImageZoom(img) {
+            if (img.classList.contains('zoomed')) {
+                img.classList.remove('zoomed');
+                img.style.transform = "scale(0.9)";
+            } else {
+                img.classList.add('zoomed');
+                img.style.transform = "scale(1.4)";
+            }
+        }
+
+        window.onclick = function(event) {
+            const mapModal = document.getElementById('mapModal');
+            const imgModal = document.getElementById('imageModal');
+            if (event.target === mapModal) closeMapModal();
+            if (event.target === imgModal) closeImageModal();
+        }
+    </script>
+</body>
+</html>
